@@ -15,5 +15,8 @@ module.exports = {
   rules: {
     "no-console": process.env.NODE_ENV === "production" ? "warn" : "off",
     "no-debugger": process.env.NODE_ENV === "production" ? "warn" : "off",
+    "x-invalid-end-tag": process.env.NODE_ENV === "production" ? "warn" : "off",
+    "vue/no-unused-components": 0,
+    "eslint-disable-next-line": false
   },
 };
