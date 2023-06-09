@@ -1,9 +1,9 @@
 import request, { IResponse } from '@/utils/request';
 import { FormInstance, message } from 'ant-design-vue';
-import { Key } from 'ant-design-vue/lib/_util/type';
 import { PaginationConfig } from 'ant-design-vue/lib/pagination';
-import { ActionContext, Module } from 'vuex';
+import { Module } from 'vuex';
 import RootStateTypes from '../interface';
+import { Key } from 'ant-design-vue/lib/table/interface';
 
 export declare interface Record {
     name: string;
@@ -18,12 +18,10 @@ export declare interface AboutStateType {
     create: boolean;
     expand: boolean;
     visible: boolean;
-    modalFormState: Record;
     selectedRowKeys: Array<Key>;
     pagination: PaginationConfig;
     doubleColorBall: Array<string>;
-    formState: Partial<Record>;
-    [propName: string]: any;
+    [propName: string]: any
 }
 
 /**
@@ -53,19 +51,12 @@ const about: Module<AboutStateType, RootStateTypes> = {
         selectedRowKeys: [],
         pagination: {},
         doubleColorBall: [],
-        formState: {
-            name: "",
-            age: '',
-            address: "",
-        },
-        modalFormState: { name: "11", age: 1, address: '', key: '' }
     },
-    getters: {},
     mutations: {
-        updateState(state, addOn) {
-            for (let p in addOn) {
-                state[p] = addOn[p]
-            }
+        updateState(state, addOn: Partial<AboutStateType>) {
+            Object.keys(addOn).map(v => {
+                state[v] = addOn[v]
+            })
         },
         //新增数据 打开Modal
         addHandle(state) {
@@ -78,9 +69,7 @@ const about: Module<AboutStateType, RootStateTypes> = {
         },
         //编辑数据
         editHandle(state, [selectedRowKey]: Array<string>) {
-            const selectedRecord = state.dataSource.find(
-                (v) => v.key === selectedRowKey
-            );
+            const selectedRecord = state.dataSource.find((v) => v.key === selectedRowKey);
             if (!!selectedRecord) {
                 state.create = false;
                 state.visible = true;
@@ -157,8 +146,7 @@ const about: Module<AboutStateType, RootStateTypes> = {
             formRef.resetFields();
             dispatch("fetchData")
         }
-    },
-    modules: {}
+    }
 }
 
 export default about

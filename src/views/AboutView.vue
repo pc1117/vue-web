@@ -153,7 +153,7 @@ import {
   IssuesCloseOutlined,
 } from "@ant-design/icons-vue";
 import { mapActions, mapMutations, mapState } from "vuex";
-import store from "@/store";
+import store, { useStore } from "@/store";
 
 export interface Record {
   name: string;
@@ -198,7 +198,6 @@ export default {
       "pagination",
       "selectedRowKeys",
       "doubleColorBall",
-      "formState",
     ]),
   },
   methods: {
@@ -214,20 +213,17 @@ export default {
     ]),
   },
   created() {
+    console.log("useStore", useStore());
     store.dispatch("about/fetchData");
   },
   setup() {
     const formRef = ref<FormInstance>();
     const modalformRef = ref<FormInstance>();
-    const modalFormState = ref<Record>({
-      key: "0",
-      name: "胡图图",
-      age: 34,
-      address: "西湖区湖底公园1号",
-    });
-
+    const modalFormState = ref({ name: "", age: "", address: "" });
+    const formState = ref({ name: "", age: "", address: "" });
     return {
       modalFormState,
+      formState,
       formRef,
       modalformRef,
       columns: [
