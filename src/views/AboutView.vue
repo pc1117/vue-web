@@ -3,7 +3,7 @@
     <div class="about">
       <a-space>
         <a-button type="primary" @click="addHandle">
-          <PlusOutlined /> 新增 {{ num }}
+          <PlusOutlined /> 新增
         </a-button>
         <a-button
           @click="() => editHandle(selectedRowKeys)"
@@ -25,6 +25,7 @@
         <a-button @click="randomHandle">
           <IssuesCloseOutlined /> 随机
         </a-button>
+        <span>{{ doubleColorBall.join(" ") }}</span>
       </a-space>
       <div class="form">
         <a-form
@@ -32,7 +33,7 @@
           name="advanced_search"
           class="ant-advanced-search-form"
           :model="formState"
-          @finish="onFinish"
+          @finish="(value) => fetchData(value)"
         >
           <a-row :gutter="24">
             <a-col :span="8">
@@ -65,7 +66,7 @@
             <a-col :span="24" style="text-align: right">
               <a-space>
                 <a-button type="primary" html-type="submit">搜索</a-button>
-                <a-button @click="resetForm">清除</a-button>
+                <a-button @click="() => resetForm(formRef)">清除</a-button>
                 <a style="font-size: 12px" @click="expand = !expand">
                   <template v-if="expand"> <UpOutlined /> 折叠</template>
                   <template v-else> <DownOutlined /> 展开</template>
@@ -76,7 +77,7 @@
         </a-form>
       </div>
       <a-table
-        :dataSource="[...carList, ...dataSource.value]"
+        :dataSource="dataSource"
         rowKey="key"
         :rowSelection="{
           selectedRowKeys,
@@ -105,7 +106,7 @@
     centered
     :width="600"
     @cancel="onCancel"
-    @ok="onOk"
+    @ok="() => onOk(modalformRef)"
     cancelText="取消"
     okText="确定"
   >
@@ -140,9 +141,8 @@
 </template>
 
 <script lang="ts">
-import { reactive, ref } from "vue";
+import { ref } from "vue";
 import { FormInstance } from "ant-design-vue/es/form";
-import request, { IResponse } from "@/utils/request";
 import {
   DownOutlined,
   UpOutlined,
@@ -152,8 +152,7 @@ import {
   RedoOutlined,
   IssuesCloseOutlined,
 } from "@ant-design/icons-vue";
-import { message } from "ant-design-vue";
-import { mapActions, mapGetters, mapState } from "vuex";
+import { mapActions, mapMutations, mapState } from "vuex";
 import store from "@/store";
 
 export interface Record {
@@ -190,165 +189,47 @@ export default {
     IssuesCloseOutlined,
   },
   computed: {
-    ...mapState(["num", "carList"]),
-    ...mapActions(["increase"]),
-    ...mapGetters(["doubleNum"]),
+    ...mapState("about", [
+      "dataSource",
+      "loading",
+      "create",
+      "expand",
+      "visible",
+      "pagination",
+      "selectedRowKeys",
+      "doubleColorBall",
+      "formState",
+    ]),
+  },
+  methods: {
+    ...mapActions("about", ["fetchData", "onOk", "resetForm"]),
+    ...mapMutations("about", [
+      "addHandle",
+      "onCancel",
+      "editHandle",
+      "onClickHandle",
+      "selectedOnChange",
+      "deleteHandle",
+      "randomHandle",
+    ]),
+  },
+  created() {
+    store.dispatch("about/fetchData");
   },
   setup() {
-    const pagination = ref({ current: 1, pageSize: 15 });
-    const expand = ref(false);
-    const visible = ref(false);
-    const loading = ref(false);
-    const create = ref(false);
     const formRef = ref<FormInstance>();
     const modalformRef = ref<FormInstance>();
-    const formState = ref({
-      name: "",
-      age: "",
-      address: "",
-    });
-    const selectedRowKeys = ref<Array<string>>([]);
     const modalFormState = ref<Record>({
       key: "0",
       name: "胡图图",
       age: 34,
       address: "西湖区湖底公园1号",
     });
-    const dataSource = reactive<{ value: Array<Record> }>({ value: [] });
-
-    //重置搜索表单
-    const resetForm = () => {
-      formRef.value?.resetFields();
-      fetchData();
-    };
-
-    const fetchData = (params = {}) => {
-      loading.value = true;
-      request<any, IResponse<Record>>({
-        url: "/api/products",
-        params,
-      })
-        .then((res) => {
-          if (res.success) {
-            store.commit("increase", {
-              payload: 1,
-            });
-            dataSource.value = res.data.rows || [];
-          } else {
-            message.error(res.message);
-          }
-        })
-        .catch((error) => {
-          console.log("error", error);
-        });
-      setTimeout(() => {
-        loading.value = false;
-      }, 500);
-    };
-
-    fetchData();
-
-    //搜素
-    const onFinish = (values = {}) => {
-      fetchData(values);
-    };
-
-    //表格行选中取消事件
-    const selectedOnChange = (_selectedRowKeys = []) => {
-      selectedRowKeys.value = _selectedRowKeys;
-    };
-
-    //表格行点击事件
-    const onClickHandle = (record: Record) => {
-      const isSelected =
-        record.key && selectedRowKeys.value.includes(record.key);
-      selectedRowKeys.value = isSelected
-        ? selectedRowKeys.value.filter((v) => v !== record.key)
-        : [...selectedRowKeys.value, record.key];
-    };
-
-    //新增编辑提交
-    const onOk = () => {
-      modalformRef.value?.validateFields().then((values: any) => {
-        if (create.value) {
-          dataSource.value.push({
-            ...values,
-            key: (dataSource.value.length + 1).toFixed(),
-          });
-        } else {
-          dataSource.value = dataSource.value.map((v) => ({
-            ...(v.key === values.key ? values : v),
-          }));
-        }
-        visible.value = false;
-      });
-    };
-
-    //新增
-    const addHandle = () => {
-      create.value = true;
-      visible.value = true;
-    };
-
-    //关闭弹窗
-    const onCancel = () => {
-      visible.value = false;
-    };
-
-    //删除数据
-    const deleteHandle = (_selectedRowKeys = []) => {
-      const filter = (v: string) => _selectedRowKeys.every((_v) => _v !== v);
-      selectedRowKeys.value = selectedRowKeys.value.filter(filter);
-      dataSource.value = dataSource.value.filter((v) => filter(v.key));
-    };
-
-    //编辑数据
-    const editHandle = ([selectedRowKey]: Array<string>) => {
-      const selectedRecord = dataSource.value.find(
-        (v) => v.key === selectedRowKey
-      );
-      if (!!selectedRecord) {
-        create.value = false;
-        visible.value = true;
-        modalFormState.value = { ...selectedRecord };
-      }
-    };
-
-    //生成随机双色球号码
-    const randomHandle = () => {
-      const targetRedBox = createRandom(6, 33).map((v) =>
-        v < 10 ? `0${v}` : `${v}`
-      );
-      const targetBlueBox = createRandom(1, 16).map((v) =>
-        v < 10 ? `0${v}` : `${v}`
-      );
-      console.log(...targetRedBox, ...targetBlueBox);
-    };
 
     return {
-      pagination,
-      randomHandle,
-      fetchData,
-      loading,
-      resetForm,
-      editHandle,
-      deleteHandle,
-      onClickHandle,
       modalFormState,
-      selectedOnChange,
-      selectedRowKeys,
-      onOk,
-      onCancel,
-      create,
-      visible,
-      addHandle,
       formRef,
       modalformRef,
-      formState,
-      expand,
-      onFinish,
-      dataSource,
-
       columns: [
         {
           title: "序号",
